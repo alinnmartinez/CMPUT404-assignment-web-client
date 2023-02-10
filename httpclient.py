@@ -41,10 +41,44 @@ class HTTPClient(object):
         return None
 
     def get_code(self, data):
-        return None
+        
+        try:
+            protocal_ver = 'HTTP/1.1 '
+            start = data.find(protocal_ver) + len(protocal_ver)
+            end = start + 3
+
+            return int(data[start:end+1])
+
+        except:
+            return -1
 
     def get_headers(self,data):
-        return None
+        # testing
+        data = "Location: http://www.google.com/ \nContent-Type: text/html; charset=UTF-8\nDate: Thu, 09 Feb 2023 07:36:51 GMT\nExpires: Sat, 11 Mar 2023 07:36:51 GMT\nCache-Control: public, max-age=2592000\nServer: gws\nContent-Length: 219\nX-XSS-Protection: 0\nX-Frame-Options: SAMEORIGIN"
+
+        method_GET = 'GET'
+        method_POST = 'POST'
+
+        if data.find(method_GET) != -1:
+            # format: method path host args port
+            header = f'GET {path} {host} {args} {port}}'
+
+        if data.find(method_POST) != -1:
+            print(f'POST index = {data.find(method_POST)}')
+
+        # alist = data.split('\n')
+
+        # c_type = alist.index('Content-Type')
+        # c_len = alist.index('Content-Length')
+
+        # if 'Content-Type' in alist:
+
+        # print()
+        # print(alist)
+        # print(c_type)
+        # print(c_len)
+
+        return data
 
     def get_body(self, data):
         return None
@@ -67,10 +101,32 @@ class HTTPClient(object):
                 done = not part
         return buffer.decode('utf-8')
 
+    def parse_url(self, url):
+        
+        host = urllib.parse.urlparse(url).hostname
+
+        path, port = self.check_path_port(urllib.parse.urlparse(url).path, urllib.parse.urlparse(url).port)
+
+        return path, host, port
+
+    def check_path_port(self, path, port):
+
+        if path == '':
+            path = '/'
+
+        if port == None:
+            port = 8080
+
+        return path, port
+
     def GET(self, url, args=None):
-        code = 500
-        body = ""
-        return HTTPResponse(code, body)
+        
+        path, port, host = self.parse_url(url)
+        
+        
+        response = message() 
+        
+        return HTTPResponse(self.get_code(response), self.get_body(response))
 
     def POST(self, url, args=None):
         code = 500
