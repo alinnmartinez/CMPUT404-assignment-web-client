@@ -52,36 +52,17 @@ class HTTPClient(object):
         except:
             return -1
 
-    def get_headers(self,data):
-        # testing
-        data = "Location: http://www.google.com/ \nContent-Type: text/html; charset=UTF-8\nDate: Thu, 09 Feb 2023 07:36:51 GMT\nExpires: Sat, 11 Mar 2023 07:36:51 GMT\nCache-Control: public, max-age=2592000\nServer: gws\nContent-Length: 219\nX-XSS-Protection: 0\nX-Frame-Options: SAMEORIGIN"
+    def get_headers(self, data):
 
-        method_GET = 'GET'
-        method_POST = 'POST'
+        header = f'{data[0]} {data[1]} HTTP/1.1\r\nHost: {data[2]}\r\nConnection: close\r\n\r\n'
 
-        if data.find(method_GET) != -1:
-            # format: method path host args port
-            header = f'GET {path} {host} {args} {port}}'
-
-        if data.find(method_POST) != -1:
-            print(f'POST index = {data.find(method_POST)}')
-
-        # alist = data.split('\n')
-
-        # c_type = alist.index('Content-Type')
-        # c_len = alist.index('Content-Length')
-
-        # if 'Content-Type' in alist:
-
-        # print()
-        # print(alist)
-        # print(c_type)
-        # print(c_len)
-
-        return data
+        return header
 
     def get_body(self, data):
-        return None
+        
+        body = data.split('\r\n\r\n')
+
+        return body[1]
     
     def sendall(self, data):
         self.socket.sendall(data.encode('utf-8'))
@@ -119,19 +100,36 @@ class HTTPClient(object):
 
         return path, port
 
+    def create_mssg(self, method, path, host, port):
+        
+        return self.get_headers([method, path, host, port])
+
+    def send_mssg(self, method, path, host, port):
+
+        header = self.create_mssg(method, path, host, port)
+        self.sendall(header)
+        response = self.recvall(self.socket)
+        self.close()
+
+        return response 
+
     def GET(self, url, args=None):
         
-        path, port, host = self.parse_url(url)
-        
-        
-        response = message() 
+        path, host, port = self.parse_url(url)
+        self.connect(host, port)
+        message = self.create_mssg('GET', path, host, port) 
+        response = self.send_mssg(message)
         
         return HTTPResponse(self.get_code(response), self.get_body(response))
 
     def POST(self, url, args=None):
-        code = 500
-        body = ""
-        return HTTPResponse(code, body)
+
+        path, host, port = self.parse_url(url)
+        self.connect(host, port)
+        message = self.create_mssg('POST', path, host, port) 
+        response = self.send_mssg(message) 
+        
+        return HTTPResponse(self.get_code(response), self.get_body(response))
 
     def command(self, url, command="GET", args=None):
         if (command == "POST"):
