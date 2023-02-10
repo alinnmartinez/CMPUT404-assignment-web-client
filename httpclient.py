@@ -54,7 +54,18 @@ class HTTPClient(object):
 
     def get_headers(self, data):
 
-        header = f'{data[0]} {data[1]} HTTP/1.1\r\nHost: {data[2]}\r\nConnection: close\r\n\r\n'
+        if data[0] == 'GET':
+            header = f'{data[0]} {data[1]} HTTP/1.1\r\nHost: {data[2]}\r\nConnection: close\r\n'
+
+        if data[0] == 'POST':
+            header = f'{data[0]} {data[1]} HTTP/1.1\r\nHost: {data[2]}\r\nConnection: close\r\n'
+
+            if data[3]:
+                header += f'Content-Type: application/x-www-form-urlencoded\r\nContent-Length: {len(urllib.parse.urlencode(data[3]))}\r\n\r\n{urllib.parse.urlencode(data[3])}'
+            else:
+                header += f'Content-Type: application/x-www-form-urlencoded\r\nContent-Length: 0\r\n'
+            
+        header += '\r\n'
 
         return header
 
@@ -85,7 +96,6 @@ class HTTPClient(object):
     def parse_url(self, url):
         
         host = urllib.parse.urlparse(url).hostname
-
         path, port = self.check_path_port(urllib.parse.urlparse(url).path, urllib.parse.urlparse(url).port)
 
         return path, host, port
@@ -96,17 +106,13 @@ class HTTPClient(object):
             path = '/'
 
         if port == None:
-            port = 8080
+            port = 80
 
         return path, port
 
-    def create_mssg(self, method, path, host, port):
-        
-        return self.get_headers([method, path, host, port])
+    def send_mssg(self, method, path, host, args):
 
-    def send_mssg(self, method, path, host, port):
-
-        header = self.create_mssg(method, path, host, port)
+        header = self.get_headers([method, path, host, args])
         self.sendall(header)
         response = self.recvall(self.socket)
         self.close()
@@ -117,8 +123,7 @@ class HTTPClient(object):
         
         path, host, port = self.parse_url(url)
         self.connect(host, port)
-        message = self.create_mssg('GET', path, host, port) 
-        response = self.send_mssg(message)
+        response = self.send_mssg('GET', path, host, args)
         
         return HTTPResponse(self.get_code(response), self.get_body(response))
 
@@ -126,8 +131,8 @@ class HTTPClient(object):
 
         path, host, port = self.parse_url(url)
         self.connect(host, port)
-        message = self.create_mssg('POST', path, host, port) 
-        response = self.send_mssg(message) 
+        response = self.send_mssg('POST', path, host, args)
+        print(response)
         
         return HTTPResponse(self.get_code(response), self.get_body(response))
 
